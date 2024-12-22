@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>7 min workout</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: grid;
+      grid-template-rows: 2fr 1fr;
+      height: 100vh;
+    }
+    #div1 {
+      background-color: #f9f9f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    #div2 {
+      background-color: #eaeaea;
+      padding: 1rem;
+    }
+    .card {
+      width: 50%;
+      height: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      color: white;
+      font-size: 3rem;
+      font-weight: 900;
+    }
+    input, button, label {
+      margin: 5px 0;
+      padding: 0.5rem;
+    }
+    #intervalSlider, #countdownSlider {
+      width: 80%;
+      margin-top: 10px;
+    }
+    .end-card {
+      background-color: black;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="div1">
+    <div class="card" id="card"></div>
+    <input type="range" id="countdownSlider" min="0" max="100" value="100" disabled>
+  </div>
+  <div id="div2">
+    <form id="form">
+      <label for="newItem">Add Exercise: </label>
+      <input type="text" id="newItem" required>
+      <br>
+      <label for="interval">Set Interval (secs): </label>
+      <input type="range" id="intervalSlider" min="1" max="60" value="40">
+      <span id="intervalDisplay">40</span>s
+      <br>
+      <button type="submit">Update</button>
+    </form>
+    <button id="startButton">Start Workout</button>
+    <button id="stopButton" disabled>Pause</button>
+    <button id="resumeButton" disabled>Resume</button>
+  </div>
+  <audio id="cardSound">
+    <source src="ding.mp3" type="audio/wav">
+    Your browser does not support the audio element.
+  </audio>
+  <script>
+    let items = ["Jumping Jacks", "Wall Sit", "Push Ups", "Sit Ups", "Step Ups", "Squats", "Tricep Dips", "Plank", "Running", "Lunges", "Push Up Rotation", "Side Plank Left", "Side Plank Right"];
+    let currentIndex = 0;
+    let interval = 40000;
+    let intervalId;
+    let countdownId;
+    let isStarted = false;
+    let isPaused = false;
+    let countdown = 100;
+
+    const cardElement = document.getElementById("card");
+    const form = document.getElementById("form");
+    const newItemInput = document.getElementById("newItem");
+    const intervalSlider = document.getElementById("intervalSlider");
+    const intervalDisplay = document.getElementById("intervalDisplay");
+    const startButton = document.getElementById("startButton");
+    const stopButton = document.getElementById("stopButton");
+    const resumeButton = document.getElementById("resumeButton");
+    const cardSound = document.getElementById("cardSound");
+    const countdownSlider = document.getElementById("countdownSlider");
+
+    // Card colors
+    const cardColors = [
+  "#FF5733", "#33CC57", "#3357CC", "#FF8C00", "#9B59B6",
+  "#FF4500", "#228B22", "#1E90FF", "#8A2BE2", "#FF1493",
+  "#FFD700", "#2E8B57", "#4B0082", "#DC143C", "#E67E22",
+  "#16A085", "#27AE60", "#2980B9", "#8E44AD", "#C0392B"
+];
+
+    // Function to update card text
+    function updateCard() {
+      if (currentIndex < items.length) {
+        cardElement.textContent = items[currentIndex];
+        cardElement.style.backgroundColor =
+          cardColors[currentIndex % cardColors.length];
+        currentIndex++;
+        cardSound.play();
+      } else {
+        showEndCard();
+        clearInterval(intervalId);
+        clearInterval(countdownId);
+      }
+    }
+
+    // Function to show the end card
+    function showEndCard() {
+  cardElement.textContent = "Coffee Time!";
+  cardElement.classList.add("end-card");
+  cardElement.style.backgroundColor = "black"; // Explicitly set background color to black
+  cardElement.style.color = "white"; // Ensure text color is white
+  countdownSlider.value = 0;
+}
+
+
+    // Function to start countdown slider
+    function startCountdown() {
+      countdown = 100;
+      countdownSlider.value = countdown;
+      const decrement = 100 / (interval / 100); // Calculate decrement per 100ms
+      clearInterval(countdownId);
+      countdownId = setInterval(() => {
+        countdown -= decrement;
+        if (countdown <= 0) {
+          countdown = 0;
+          clearInterval(countdownId);
+        }
+        countdownSlider.value = Math.max(countdown, 0);
+      }, 100); // Update every 100ms
+    }
+
+    // Function to reset interval
+    function resetInterval() {
+      clearInterval(intervalId);
+      clearInterval(countdownId);
+      intervalId = setInterval(() => {
+        updateCard();
+        startCountdown();
+      }, interval);
+    }
+
+    // Slider update
+    intervalSlider.addEventListener("input", () => {
+      intervalDisplay.textContent = intervalSlider.value;
+      interval = intervalSlider.value * 1000;
+    });
+
+    // Form submit event to add item
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const newItem = newItemInput.value.trim();
+      if (newItem) {
+        items.push(newItem);
+        newItemInput.value = ""; // Clear input
+      }
+    });
+
+    // Start button
+    startButton.addEventListener("click", () => {
+      if (!isStarted) {
+        updateCard(); // Show the first card immediately
+        startCountdown();
+        resetInterval();
+        isStarted = true;
+        stopButton.disabled = false;
+        startButton.disabled = true;
+      }
+    });
+
+    // Stop button
+    stopButton.addEventListener("click", () => {
+      clearInterval(intervalId);
+      clearInterval(countdownId);
+      isPaused = true;
+      stopButton.disabled = true;
+      resumeButton.disabled = false;
+    });
+
+    // Resume button
+    resumeButton.addEventListener("click", () => {
+      if (isPaused) {
+        resetInterval();
+        startCountdown();
+        isPaused = false;
+        stopButton.disabled = false;
+        resumeButton.disabled = true;
+      }
+    });
+  </script>
+</body>
+</html>
